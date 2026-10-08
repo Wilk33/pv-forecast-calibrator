@@ -25,6 +25,16 @@ def _number(value: Any,name: str,required: bool=True) -> float | None:
 	return number
 
 
+def _finite_number(value: Any,name: str) -> float:
+	try:
+		number=float(value)
+	except (TypeError,ValueError):
+		raise ForecastDataError(f"{name} is not a number") from None
+	if not math.isfinite(number):
+		raise ForecastDataError(f"{name} must be finite")
+	return number
+
+
 @dataclass(frozen=True)
 class ForecastSet:
 	fpv: float | None
@@ -105,10 +115,10 @@ class DailyRecord:
 			date=str(value["date"]),
 			captured_at=str(value["captured_at"]),
 			forecasts=ForecastSet.from_dict(value["forecasts"]),
-			published_forecast_kwh=float(value["published_forecast_kwh"]),
-			correction_kwh=float(value["correction_kwh"]),
+			published_forecast_kwh=_number(value["published_forecast_kwh"],"published_forecast_kwh"),
+			correction_kwh=_finite_number(value["correction_kwh"],"correction_kwh"),
 			mode=str(value["mode"]),
-			actual_kwh=None if actual is None else float(actual)
+			actual_kwh=None if actual is None else _number(actual,"actual_kwh")
 		)
 
 	def with_actual(self,actual_kwh: float) -> "DailyRecord":

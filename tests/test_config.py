@@ -40,6 +40,7 @@ class AppConfigTests(unittest.TestCase):
 	def test_rejects_invalid_numeric_ranges(self):
 		for key,value in (
 			("overprediction_penalty",0.9),
+			("overprediction_penalty","nan"),
 			("max_downward_correction_kwh",-1),
 			("decay",1.1),
 			("minimum_training_days",0),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import time
+import math
 from typing import Any
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 
@@ -31,9 +32,12 @@ def _time(options: dict[str,Any],key: str,default: str) -> time:
 
 def _float(options: dict[str,Any],key: str,default: float) -> float:
 	try:
-		return float(options.get(key,default))
+		value=float(options.get(key,default))
 	except (TypeError,ValueError) as error:
 		raise ConfigurationError(f"Option {key} must be a number") from error
+	if not math.isfinite(value):
+		raise ConfigurationError(f"Option {key} must be finite")
+	return value
 
 
 def _int(options: dict[str,Any],key: str,default: int) -> int:

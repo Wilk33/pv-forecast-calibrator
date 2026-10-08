@@ -37,6 +37,20 @@ class JsonStateStoreTests(unittest.TestCase):
 			with self.assertRaises(StateFileError):
 				JsonStateStore(path).load()
 
+	def test_non_finite_number_in_state_is_reported(self):
+		with tempfile.TemporaryDirectory() as directory:
+			path=Path(directory)/"state.json"
+			path.write_text(
+				'{"records":[{"date":"2026-10-08","captured_at":"2026-10-08T04:20:00+02:00",'
+				'"forecasts":{"fpv":15,"spv":20,"spv_l":10,"spv_h":30,"spv_div_l":15,'
+				'"spv_l_div_h":20,"spv_div_h":25},"published_forecast_kwh":20,'
+				'"correction_kwh":0,"mode":"learning","actual_kwh":NaN}]}',
+				encoding="utf-8"
+			)
+
+			with self.assertRaises(StateFileError):
+				JsonStateStore(path).load()
+
 	def test_add_record_is_idempotent_and_trims_oldest_days(self):
 		state=AppState()
 		for day in range(1,6):
