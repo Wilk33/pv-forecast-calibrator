@@ -1,0 +1,54 @@
+name: PV Forecast Calibrator
+description: Lokalnie kalibrowana prognoza dziennej produkcji PV
+version: "1.0.0"
+slug: pv-forecast-calibrator
+url: "https://github.com/Wilk33/pv-forecast-calibrator"
+stage: experimental
+init: false
+homeassistant_api: true
+hassio_api: true
+services:
+  - mqtt:need
+arch:
+  - aarch64
+  - amd64
+options:
+  forecast_solar_entity: null
+  solcast_entity: null
+  production_entity: null
+  timezone: Europe/Warsaw
+  snapshot_time: "04:20"
+  snapshot_deadline: "04:45"
+  settlement_time: "23:00"
+  overprediction_penalty: 2.0
+  max_downward_correction_kwh: 1.0
+  decay: 0.93
+  minimum_training_days: 5
+  minimum_validation_days: 3
+  validation_window_days: 30
+  history_limit_days: 370
+  poll_interval_seconds: 60
+  mqtt_base_topic: pv_forecast_calibrator
+  mqtt_discovery_prefix: homeassistant
+  device_name: PV Forecast Calibrator
+  log_level: INFO
+schema:
+  forecast_solar_entity: str
+  solcast_entity: str
+  production_entity: str
+  timezone: str
+  snapshot_time: str
+  snapshot_deadline: str
+  settlement_time: str
+  overprediction_penalty: float(1,10)
+  max_downward_correction_kwh: float(0,20)
+  decay: float(0.01,1)
+  minimum_training_days: int(1,365)
+  minimum_validation_days: int(1,365)
+  validation_window_days: int(1,365)
+  history_limit_days: int(2,730)
+  poll_interval_seconds: int(10,3600)
+  mqtt_base_topic: str
+  mqtt_discovery_prefix: str
+  device_name: str
+  log_level: list(DEBUG|INFO|WARNING|ERROR)

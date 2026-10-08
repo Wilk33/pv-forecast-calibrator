@@ -1,0 +1,20 @@
+configuration:
+  forecast_solar_entity: {name: Encja Forecast.Solar, description: Dzienna prognoza produkcji Forecast.Solar.}
+  solcast_entity: {name: Encja Solcast, description: Dzienna prognoza z atrybutami estimate, estimate10 i estimate90.}
+  production_entity: {name: Encja produkcji PV, description: Dzienna rzeczywista produkcja PV zerowana po północy.}
+  timezone: {name: Strefa czasowa, description: Strefa używana do próbki i zamknięcia dnia.}
+  snapshot_time: {name: Godzina próbki, description: Początek pobierania pełnej prognozy dobowej.}
+  snapshot_deadline: {name: Granica próbki, description: Po tej godzinie prognoza nie jest zapisywana jako całodniowa.}
+  settlement_time: {name: Zamknięcie dnia, description: Godzina zapisania końcowej produkcji.}
+  overprediction_penalty: {name: Kara za przeszacowanie, description: Mnożnik błędu, gdy prognoza jest za wysoka.}
+  max_downward_correction_kwh: {name: Maksymalna korekta w dół, description: Największe dopuszczalne obniżenie SPV w kWh.}
+  decay: {name: Zanik wag historii, description: Względna waga kolejnego starszego dnia.}
+  minimum_training_days: {name: Minimalne dni treningowe, description: Dni wymagane przed pierwszym testem kroczącym.}
+  minimum_validation_days: {name: Minimalne dni walidacyjne, description: Liczba testów wymagana do włączenia korekty.}
+  validation_window_days: {name: Okno walidacji, description: Maksymalna liczba ostatnich testów kroczących.}
+  history_limit_days: {name: Limit historii, description: Maksymalna liczba przechowywanych dni.}
+  poll_interval_seconds: {name: Odstęp odczytu, description: Odstęp pętli aplikacji w sekundach.}
+  mqtt_base_topic: {name: Główny temat MQTT, description: Prefiks tematów aplikacji.}
+  mqtt_discovery_prefix: {name: Prefiks Discovery, description: Zwykle homeassistant.}
+  device_name: {name: Nazwa urządzenia, description: Nazwa widoczna w Home Assistant.}
+  log_level: {name: Poziom logowania, description: Szczegółowość dziennika aplikacji.}

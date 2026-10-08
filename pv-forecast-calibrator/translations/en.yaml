@@ -1,0 +1,20 @@
+configuration:
+  forecast_solar_entity: {name: Forecast.Solar entity, description: Daily Forecast.Solar production forecast.}
+  solcast_entity: {name: Solcast entity, description: Daily forecast with estimate, estimate10 and estimate90 attributes.}
+  production_entity: {name: PV production entity, description: Daily actual PV production reset after midnight.}
+  timezone: {name: Time zone, description: Time zone used for snapshots and settlement.}
+  snapshot_time: {name: Snapshot time, description: Start of the full-day forecast capture window.}
+  snapshot_deadline: {name: Snapshot deadline, description: Forecasts are not accepted as full-day data after this time.}
+  settlement_time: {name: Settlement time, description: Time used to finalize the daily production.}
+  overprediction_penalty: {name: Overprediction penalty, description: Error multiplier when the forecast is too high.}
+  max_downward_correction_kwh: {name: Maximum downward correction, description: Largest allowed SPV reduction in kWh.}
+  decay: {name: History weight decay, description: Relative weight of each next older day.}
+  minimum_training_days: {name: Minimum training days, description: Days required before the first walk-forward test.}
+  minimum_validation_days: {name: Minimum validation days, description: Tests required before correction can activate.}
+  validation_window_days: {name: Validation window, description: Maximum number of recent walk-forward tests.}
+  history_limit_days: {name: History limit, description: Maximum number of stored days.}
+  poll_interval_seconds: {name: Poll interval, description: Application loop interval in seconds.}
+  mqtt_base_topic: {name: MQTT base topic, description: Topic prefix used by the application.}
+  mqtt_discovery_prefix: {name: Discovery prefix, description: Usually homeassistant.}
+  device_name: {name: Device name, description: Name shown in Home Assistant.}
+  log_level: {name: Log level, description: Application log verbosity.}
