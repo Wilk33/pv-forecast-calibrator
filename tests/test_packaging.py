@@ -75,6 +75,13 @@ class PackagingTests(unittest.TestCase):
 				with self.subTest(language=language,key=key):
 					self.assertIn(f"  {key}:",translation)
 
+	def test_git_attributes_force_lf_for_container_files(self):
+		attributes=(ROOT/".gitattributes").read_text(encoding="utf-8")
+
+		self.assertIn("*.sh text eol=lf",attributes)
+		self.assertIn("*.py text eol=lf",attributes)
+		self.assertIn("*.yaml text eol=lf",attributes)
+
 
 if __name__ == "__main__":
 	unittest.main()
