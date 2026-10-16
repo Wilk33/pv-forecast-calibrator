@@ -1,5 +1,13 @@
 # Historia zmian
 
+## 1.0.1
+
+- Naprawiono przejmowanie końcowej produkcji poprzedniego dnia przed opóźnionym resetem licznika dziennego.
+- Odzyskiwanie produkcji z historii zaczyna się od godziny porannej próbki zamiast od północy.
+- Istniejące rekordy z wersji 1.0.0 są uzgadniane z historią Home Assistant i dopiero po potwierdzeniu trafiają do uczenia.
+- Rozbudowano logi INFO o konfigurację, poranną próbkę, postęp uczenia, bramkę jakości, uzgodnienie historii i zamknięcie dnia.
+- Rozbudowano logi DEBUG o każdy cykl, odczyty produkcji i publikowany pakiet MQTT.
+
 ## 1.0.0
 
 - Bezpośredni odczyt Forecast.Solar, Solcast i dziennej produkcji PV.

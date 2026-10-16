@@ -29,6 +29,24 @@ class JsonStateStoreTests(unittest.TestCase):
 			self.assertEqual(store.load(),state)
 			self.assertEqual(list(path.parent.glob("*.tmp")),[])
 
+	def test_legacy_completed_record_is_loaded_as_unverified(self):
+		with tempfile.TemporaryDirectory() as directory:
+			path=Path(directory)/"state.json"
+			path.write_text(
+				'{"version":1,"records":[{"date":"2026-10-14",'
+				'"captured_at":"2026-10-14T04:20:00+02:00",'
+				'"forecasts":{"fpv":15,"spv":16.3977,"spv_l":10,"spv_h":30,'
+				'"spv_div_l":13.19885,"spv_l_div_h":20,"spv_div_h":23.19885},'
+				'"published_forecast_kwh":16.3977,"correction_kwh":0,'
+				'"mode":"learning","actual_kwh":43.5}]}',
+				encoding="utf-8"
+			)
+
+			record=JsonStateStore(path).load().records[0]
+
+			self.assertEqual(record.actual_kwh,43.5)
+			self.assertFalse(record.actual_verified)
+
 	def test_corrupt_file_is_reported(self):
 		with tempfile.TemporaryDirectory() as directory:
 			path=Path(directory)/"state.json"

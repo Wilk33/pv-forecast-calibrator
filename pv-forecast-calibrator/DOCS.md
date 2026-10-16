@@ -4,7 +4,7 @@
 
 Aplikacja zapisuje prognozę dobową przed rozpoczęciem produkcji, a po zakończeniu dnia porównuje ją z rzeczywistą produkcją. Uczy się wyłącznie na dniach wcześniejszych. Nie używa odświeżonej prognozy śróddziennej jako prognozy całego dnia.
 
-Prognozą bazową jest `estimate` z encji Solcast. Aplikacja zapisuje również Forecast.Solar, `estimate10`, `estimate90` i trzy średnie modeli. Wersja 1.0.0 publikuje SPV z lokalną korektą w dół tylko wtedy, gdy test kroczący potwierdza poprawę zarówno kosztu asymetrycznego, jak i MAE.
+Prognozą bazową jest `estimate` z encji Solcast. Aplikacja zapisuje również Forecast.Solar, `estimate10`, `estimate90` i trzy średnie modeli. Aplikacja publikuje SPV z lokalną korektą w dół tylko wtedy, gdy test kroczący potwierdza poprawę zarówno kosztu asymetrycznego, jak i MAE.
 
 ## Konfiguracja encji
 
@@ -62,3 +62,9 @@ Dodatni błąd oznacza przeszacowanie, a ujemny niedoszacowanie.
 ## Trwałość
 
 Historia znajduje się w `/data/state.json` i jest objęta kopiami zapasowymi aplikacji Home Assistant. Zapis jest atomowy. Wartości `unknown`, `unavailable`, ujemne i niefinitywne są pomijane.
+
+Po aktualizacji z wersji 1.0.0 aplikacja ponownie odczytuje historyczną produkcję od godziny porannej próbki do północy. Rekord jest używany do uczenia dopiero po takim potwierdzeniu. Zapobiega to przejęciu końcowej wartości poprzedniego dnia, gdy dzienny licznik produkcji zeruje się kilka minut po północy.
+
+## Logi
+
+Poziom `INFO` zapisuje uruchomienie, konfigurację, uzgodnienie historii, poranną próbkę, postęp treningu i walidacji, metryki bramki jakości oraz zamknięcie dnia. Poziom `DEBUG` dodatkowo zapisuje każdy cykl, surowy odczyt produkcji, maksimum dzienne i pakiet publikowany przez MQTT.

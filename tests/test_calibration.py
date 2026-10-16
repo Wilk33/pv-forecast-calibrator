@@ -33,7 +33,8 @@ def record(item):
 		published_forecast_kwh=item["spv"],
 		correction_kwh=0,
 		mode="learning",
-		actual_kwh=item["actual"]
+		actual_kwh=item["actual"],
+		actual_verified=True
 	)
 
 
@@ -69,6 +70,28 @@ class CalibrationTests(unittest.TestCase):
 		self.assertEqual(decision.mode,"learning")
 		self.assertEqual(decision.correction_kwh,0)
 		self.assertEqual(decision.forecast_kwh,30)
+		self.assertEqual(decision.completed_days,7)
+		self.assertEqual(decision.validation_samples,2)
+		self.assertEqual(decision.required_validation_samples,3)
+		self.assertIn("brakuje 1",decision.reason)
+
+	def test_unverified_actual_is_excluded_from_learning(self):
+		item=self.history[0]
+		unverified=DailyRecord(
+			date=item.date,
+			captured_at=item.captured_at,
+			forecasts=item.forecasts,
+			published_forecast_kwh=item.published_forecast_kwh,
+			correction_kwh=item.correction_kwh,
+			mode=item.mode,
+			actual_kwh=item.actual_kwh,
+			actual_verified=False
+		)
+
+		decision=decide_forecast([unverified]+self.history[1:8],30,self.config)
+
+		self.assertEqual(decision.mode,"learning")
+		self.assertEqual(decision.completed_days,7)
 
 	def test_gate_rejects_lower_asymmetric_loss_when_mae_is_higher(self):
 		raw=MetricSummary(samples=5,mae=2,asymmetric_loss=4)

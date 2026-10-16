@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import logging
 from typing import Any
 
 from . import __version__
+
+
+LOGGER=logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -106,11 +110,19 @@ class MqttPublisher:
 			60
 		)
 		self.client.loop_start()
+		LOGGER.info(
+			"Rozpoczęto połączenie MQTT: host=%s, port=%s, TLS=%s",
+			self.service.get("host","core-mosquitto"),
+			self.service.get("port",1883),
+			bool(self.service.get("ssl"))
+		)
 
 	def publish_discovery(self):
 		self._require_client()
-		for message in discovery_messages(self.discovery_prefix,self.base_topic,self.device_name):
+		messages=discovery_messages(self.discovery_prefix,self.base_topic,self.device_name)
+		for message in messages:
 			self.client.publish(message.topic,json.dumps(message.payload,ensure_ascii=False),qos=1,retain=True)
+		LOGGER.info("Wysłano %d komunikatów MQTT Discovery",len(messages))
 
 	def publish_state(self,payload: dict[str,Any]):
 		self._require_client()
@@ -121,6 +133,7 @@ class MqttPublisher:
 			qos=1,
 			retain=True
 		)
+		LOGGER.debug("Wysłano stan MQTT na %s/state",self.base_topic)
 
 	def close(self):
 		if self.client is None:
@@ -128,6 +141,7 @@ class MqttPublisher:
 		self.client.publish(f"{self.base_topic}/availability","offline",qos=1,retain=True)
 		self.client.disconnect()
 		self.client.loop_stop()
+		LOGGER.info("Zamknięto połączenie MQTT")
 
 	def _require_client(self):
 		if self.client is None:

@@ -96,6 +96,7 @@ class DailyRecord:
 	correction_kwh: float
 	mode: str
 	actual_kwh: float | None=None
+	actual_verified: bool=False
 
 	def to_dict(self) -> dict[str,Any]:
 		return {
@@ -105,7 +106,8 @@ class DailyRecord:
 			"published_forecast_kwh":self.published_forecast_kwh,
 			"correction_kwh":self.correction_kwh,
 			"mode":self.mode,
-			"actual_kwh":self.actual_kwh
+			"actual_kwh":self.actual_kwh,
+			"actual_verified":self.actual_verified
 		}
 
 	@classmethod
@@ -118,10 +120,11 @@ class DailyRecord:
 			published_forecast_kwh=_number(value["published_forecast_kwh"],"published_forecast_kwh"),
 			correction_kwh=_finite_number(value["correction_kwh"],"correction_kwh"),
 			mode=str(value["mode"]),
-			actual_kwh=None if actual is None else _number(actual,"actual_kwh")
+			actual_kwh=None if actual is None else _number(actual,"actual_kwh"),
+			actual_verified=bool(value.get("actual_verified",False))
 		)
 
-	def with_actual(self,actual_kwh: float) -> "DailyRecord":
+	def with_actual(self,actual_kwh: float,verified: bool=True) -> "DailyRecord":
 		actual=_number(actual_kwh,"actual_kwh")
 		return DailyRecord(
 			date=self.date,
@@ -130,5 +133,6 @@ class DailyRecord:
 			published_forecast_kwh=self.published_forecast_kwh,
 			correction_kwh=self.correction_kwh,
 			mode=self.mode,
-			actual_kwh=actual
+			actual_kwh=actual,
+			actual_verified=verified
 		)

@@ -39,6 +39,11 @@ class CalibrationDecision:
 	mode: str
 	raw_metrics: MetricSummary | None
 	corrected_metrics: MetricSummary | None
+	completed_days: int
+	validation_samples: int
+	required_validation_samples: int
+	candidate_correction_kwh: float
+	reason: str
 
 
 def asymmetric_loss(actual: float,prediction: float,over_penalty: float) -> float:
@@ -58,7 +63,10 @@ def _weighted_quantile(values: list[float],quantile: float,weights: list[float])
 
 
 def _completed(history: list[DailyRecord]) -> list[DailyRecord]:
-	return sorted((item for item in history if item.actual_kwh is not None),key=lambda item:item.date)
+	return sorted(
+		(item for item in history if item.actual_kwh is not None and item.actual_verified),
+		key=lambda item:item.date
+	)
 
 
 def _candidate_correction(history: list[DailyRecord],config: CalibrationConfig) -> float:
@@ -110,15 +118,49 @@ def passes_gate(raw: MetricSummary,corrected: MetricSummary) -> bool:
 def decide_forecast(history: list[DailyRecord],raw_spv: float,config: CalibrationConfig) -> CalibrationDecision:
 	completed=_completed(history)
 	validation=walk_forward(completed,config)
+	candidate=_candidate_correction(completed,config)
 	if len(validation) < config.minimum_validation_days:
-		return CalibrationDecision(raw_spv,0.0,"learning",None,None)
+		missing=config.minimum_validation_days-len(validation)
+		return CalibrationDecision(
+			raw_spv,
+			0.0,
+			"learning",
+			None,
+			None,
+			len(completed),
+			len(validation),
+			config.minimum_validation_days,
+			candidate,
+			f"za mało próbek walidacyjnych - brakuje {missing}"
+		)
 	validation=validation[-config.validation_window_days:]
 	raw_metrics=_metrics(validation,False,config.over_penalty)
 	corrected_metrics=_metrics(validation,True,config.over_penalty)
 	if not passes_gate(raw_metrics,corrected_metrics):
-		return CalibrationDecision(raw_spv,0.0,"fallback_spv",raw_metrics,corrected_metrics)
-	correction=_candidate_correction(completed,config)
-	return CalibrationDecision(raw_spv+correction,correction,"calibrated",raw_metrics,corrected_metrics)
+		return CalibrationDecision(
+			raw_spv,
+			0.0,
+			"fallback_spv",
+			raw_metrics,
+			corrected_metrics,
+			len(completed),
+			len(validation),
+			config.minimum_validation_days,
+			candidate,
+			"korekta nie poprawiła jednocześnie kosztu asymetrycznego i MAE"
+		)
+	return CalibrationDecision(
+		raw_spv+candidate,
+		candidate,
+		"calibrated",
+		raw_metrics,
+		corrected_metrics,
+		len(completed),
+		len(validation),
+		config.minimum_validation_days,
+		candidate,
+		"korekta przeszła bramkę jakości"
+	)
 
 
 def completed_mae(history: list[DailyRecord],days: int) -> float | None:

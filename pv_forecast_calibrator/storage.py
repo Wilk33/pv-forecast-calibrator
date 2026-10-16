@@ -6,8 +6,12 @@ import os
 from pathlib import Path
 import tempfile
 from typing import Any
+import logging
 
 from .models import DailyRecord
+
+
+LOGGER=logging.getLogger(__name__)
 
 
 class StateFileError(ValueError):
@@ -40,7 +44,7 @@ class AppState:
 
 	def to_dict(self) -> dict[str,Any]:
 		return {
-			"version":1,
+			"version":2,
 			"records":[item.to_dict() for item in self.records],
 			"production_date":self.production_date,
 			"production_max_kwh":self.production_max_kwh
@@ -61,12 +65,21 @@ class JsonStateStore:
 
 	def load(self) -> AppState:
 		if not self.path.exists():
+			LOGGER.info("Brak pliku stanu %s - rozpoczynam z pustą historią",self.path)
 			return AppState()
 		try:
 			value=json.loads(self.path.read_text(encoding="utf-8"))
 			if not isinstance(value,dict):
 				raise ValueError("root must be an object")
-			return AppState.from_dict(value)
+			state=AppState.from_dict(value)
+			LOGGER.debug(
+				"Wczytano stan %s: rekordy=%d, data_produkcji=%s, maksimum=%s",
+				self.path,
+				len(state.records),
+				state.production_date,
+				state.production_max_kwh
+			)
+			return state
 		except (OSError,ValueError,KeyError,TypeError) as error:
 			raise StateFileError(f"Cannot load state file: {error}") from error
 
@@ -79,6 +92,7 @@ class JsonStateStore:
 				handle.flush()
 				os.fsync(handle.fileno())
 			os.replace(temp_name,self.path)
+			LOGGER.debug("Zapisano stan %s: rekordy=%d",self.path,len(state.records))
 		finally:
 			if os.path.exists(temp_name):
 				os.unlink(temp_name)

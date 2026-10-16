@@ -1,6 +1,6 @@
 name: PV Forecast Calibrator
 description: Lokalnie kalibrowana prognoza dziennej produkcji PV
-version: "1.0.0"
+version: "1.0.1"
 slug: pv-forecast-calibrator
 url: "https://github.com/Wilk33/pv-forecast-calibrator"
 stage: experimental

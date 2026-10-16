@@ -1,6 +1,6 @@
 # PV Forecast Calibrator
 
-**Status: wersja 1.0.0 jest gotowa do testów w Home Assistant OS. Aplikacja nie steruje falownikiem ani baterią.**
+**Status: wersja 1.0.1 jest gotowa do testów w Home Assistant OS. Aplikacja nie steruje falownikiem ani baterią.**
 
 PV Forecast Calibrator zapisuje przed rozpoczęciem produkcji pełną prognozę dobową Forecast.Solar i Solcast, porównuje ją z lokalną produkcją PV oraz publikuje jedną konserwatywnie skorygowaną prognozę przez MQTT Discovery.
 

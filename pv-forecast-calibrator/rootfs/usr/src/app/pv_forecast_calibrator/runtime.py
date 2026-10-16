@@ -21,9 +21,20 @@ class ForecastRuntime:
 		self.ha=ha
 		self.state=store.load()
 		self.model_status="learning"
+		self._history_attempted_dates=set()
+		self._missing_snapshot_logged_dates=set()
+		verified=sum(1 for item in self.state.records if item.actual_kwh is not None and item.actual_verified)
+		unverified=sum(1 for item in self.state.records if item.actual_kwh is not None and not item.actual_verified)
+		LOGGER.info(
+			"Wczytano historię: rekordy=%d, kompletne_zweryfikowane=%d, wymagające_uzgodnienia=%d",
+			len(self.state.records),
+			verified,
+			unverified
+		)
 
 	async def tick(self,now: datetime) -> bool:
 		local_now=now.astimezone(self.config.timezone)
+		LOGGER.debug("Cykl %s",local_now.isoformat())
 		changed=False
 		changed=await self._recover_previous_days(local_now) or changed
 		changed=await self._track_production(local_now) or changed
@@ -35,12 +46,26 @@ class ForecastRuntime:
 			record=self.state.record_for(today)
 		elif record is None and clock > self.config.snapshot_deadline:
 			self.model_status="missing_snapshot"
+			if today not in self._missing_snapshot_logged_dates:
+				LOGGER.warning(
+					"Brak porannej próbki %s - minęła granica %s, prognoza śróddzienna nie zostanie użyta",
+					today,
+					self.config.snapshot_deadline.isoformat(timespec="minutes")
+				)
+				self._missing_snapshot_logged_dates.add(today)
 		elif record is not None:
 			self.model_status=record.mode
 		if record is not None and record.actual_kwh is None and clock >= self.config.settlement_time:
 			changed=self._settle(today) or changed
 		if changed:
 			self.store.save(self.state)
+		LOGGER.debug(
+			"Koniec cyklu %s: zmiana=%s, stan=%s, maksimum_produkcji=%s",
+			local_now.isoformat(),
+			changed,
+			self.model_status,
+			self.state.production_max_kwh
+		)
 		return changed
 
 	async def _capture(self,now: datetime) -> bool:
@@ -49,6 +74,18 @@ class ForecastRuntime:
 			solcast=await self.ha.get_state(self.config.solcast_entity)
 			forecasts=ForecastSet.from_states(forecast_solar.get("state"),solcast)
 			decision=decide_forecast(self.state.records,forecasts.spv,self.config.calibration)
+			LOGGER.info(
+				"Poranna próbka %s: FPV=%s kWh, SPV=%.4f kWh, SPV_L=%.4f kWh, SPV_H=%.4f kWh, SPV/L=%.4f kWh, SPV_L/H=%.4f kWh, SPV/H=%.4f kWh",
+				now.date().isoformat(),
+				"brak" if forecasts.fpv is None else f"{forecasts.fpv:.4f}",
+				forecasts.spv,
+				forecasts.spv_l,
+				forecasts.spv_h,
+				forecasts.spv_div_l,
+				forecasts.spv_l_div_h,
+				forecasts.spv_div_h
+			)
+			self._log_decision(decision)
 			record=DailyRecord(
 				date=now.date().isoformat(),
 				captured_at=now.isoformat(),
@@ -67,50 +104,147 @@ class ForecastRuntime:
 
 	async def _track_production(self,now: datetime) -> bool:
 		date=now.date().isoformat()
+		clock=now.time().replace(tzinfo=None)
 		changed=False
 		if self.state.production_date != date:
+			previous_date=self.state.production_date
+			previous_max=self.state.production_max_kwh
 			self.state.production_date=date
 			self.state.production_max_kwh=None
 			changed=True
+			LOGGER.info(
+				"Nowy dzień produkcji %s: wyzerowano akumulator lokalny, poprzednia_data=%s, poprzednie_maksimum=%s; odczyty rozpoczną się o %s",
+				date,
+				previous_date,
+				previous_max,
+				self.config.snapshot_time.isoformat(timespec="minutes")
+			)
+		if clock < self.config.snapshot_time:
+			LOGGER.debug(
+				"Odczyt produkcji pominięty przed %s, aby nie przejąć wartości sprzed resetu licznika",
+				self.config.snapshot_time.isoformat(timespec="minutes")
+			)
+			return changed
 		try:
 			payload=await self.ha.get_state(self.config.production_entity)
 		except Exception:
-			LOGGER.exception("Cannot read current PV production")
+			LOGGER.exception("Nie można odczytać bieżącej produkcji PV")
 			return changed
 		value=parse_numeric_state(payload)
+		LOGGER.debug(
+			"Odczyt produkcji %s: surowy=%r, liczba=%s, maksimum_przed=%s",
+			date,
+			payload.get("state"),
+			value,
+			self.state.production_max_kwh
+		)
 		if value is not None and (self.state.production_max_kwh is None or value > self.state.production_max_kwh):
 			self.state.production_max_kwh=value
 			changed=True
+			LOGGER.debug("Nowe maksimum produkcji %s: %.4f kWh",date,value)
 		return changed
 
 	async def _recover_previous_days(self,now: datetime) -> bool:
 		changed=False
 		for record in list(self.state.records):
-			if record.actual_kwh is not None or record.date >= now.date().isoformat():
+			if record.actual_verified or record.date >= now.date().isoformat():
 				continue
-			start=datetime.fromisoformat(record.date).replace(tzinfo=self.config.timezone)
-			end=start+timedelta(days=1)
+			if record.date in self._history_attempted_dates:
+				continue
+			self._history_attempted_dates.add(record.date)
+			start,end=self._history_window(record.date)
 			try:
 				actual=await self.ha.history_max(self.config.production_entity,start,end)
 			except Exception:
-				LOGGER.exception("Cannot recover PV production for %s",record.date)
+				LOGGER.exception("Nie można odzyskać produkcji PV dla %s",record.date)
 				continue
 			if actual is not None:
-				self.state.replace_record(record.with_actual(actual))
+				old=record.actual_kwh
+				self.state.replace_record(record.with_actual(actual,verified=True))
 				changed=True
+				if old is None:
+					LOGGER.info(
+						"Odzyskano produkcję %s z historii: %.4f kWh, zakres=%s - %s",
+						record.date,
+						actual,
+						start.isoformat(),
+						end.isoformat()
+					)
+				elif abs(old-actual) > 0.00005:
+					LOGGER.info(
+						"Uzgodnienie historii %s: produkcja %.4f -> %.4f kWh, zakres=%s - %s",
+						record.date,
+						old,
+						actual,
+						start.isoformat(),
+						end.isoformat()
+					)
+				else:
+					LOGGER.info("Potwierdzono produkcję %s: %.4f kWh",record.date,actual)
+			else:
+				LOGGER.warning(
+					"Brak danych historii dla %s w zakresie %s - %s; dzień pozostaje wyłączony z uczenia",
+					record.date,
+					start.isoformat(),
+					end.isoformat()
+				)
 		return changed
 
 	def _settle(self,date: str) -> bool:
 		record=self.state.record_for(date)
 		if record is None or record.actual_kwh is not None or self.state.production_max_kwh is None:
 			return False
-		return self.state.replace_record(record.with_actual(self.state.production_max_kwh))
+		actual=self.state.production_max_kwh
+		changed=self.state.replace_record(record.with_actual(actual,verified=True))
+		if changed:
+			error=record.published_forecast_kwh-actual
+			LOGGER.info(
+				"Zamknięcie dnia %s: prognoza=%.4f kWh, produkcja=%.4f kWh, błąd_podpisany=%+.4f kWh, błąd_bezwzględny=%.4f kWh, tryb=%s",
+				date,
+				record.published_forecast_kwh,
+				actual,
+				error,
+				abs(error),
+				record.mode
+			)
+		return changed
+
+	def _history_window(self,date: str) -> tuple[datetime,datetime]:
+		day=datetime.fromisoformat(date).date()
+		start=datetime.combine(day,self.config.snapshot_time,tzinfo=self.config.timezone)
+		end=datetime.combine(day+timedelta(days=1),time(0,0),tzinfo=self.config.timezone)
+		return start,end
+
+	def _log_decision(self,decision) -> None:
+		LOGGER.info(
+			"Decyzja modelu: %s, historia=%d dni, walidacja=%d/%d, kandydat_korekty=%+.4f kWh, zastosowana_korekta=%+.4f kWh, wynik=%.4f kWh, powód=%s",
+			decision.mode,
+			decision.completed_days,
+			decision.validation_samples,
+			decision.required_validation_samples,
+			decision.candidate_correction_kwh,
+			decision.correction_kwh,
+			decision.forecast_kwh,
+			decision.reason
+		)
+		if decision.raw_metrics is not None and decision.corrected_metrics is not None:
+			LOGGER.info(
+				"Bramka jakości: próbki=%d, SPV_MAE=%.4f kWh, korekta_MAE=%.4f kWh, SPV_koszt=%.4f, korekta_koszt=%.4f",
+				decision.raw_metrics.samples,
+				decision.raw_metrics.mae,
+				decision.corrected_metrics.mae,
+				decision.raw_metrics.asymmetric_loss,
+				decision.corrected_metrics.asymmetric_loss
+			)
 
 	def state_payload(self,now: datetime) -> dict[str,Any]:
 		local_now=now.astimezone(self.config.timezone)
 		today=local_now.date().isoformat()
 		current=self.state.record_for(today)
-		completed=sorted((item for item in self.state.records if item.actual_kwh is not None),key=lambda item:item.date)
+		completed=sorted(
+			(item for item in self.state.records if item.actual_kwh is not None and item.actual_verified),
+			key=lambda item:item.date
+		)
 		previous=completed[-1] if completed else None
 		return {
 			"forecast_today_kwh":None if current is None else round(current.published_forecast_kwh,4),
