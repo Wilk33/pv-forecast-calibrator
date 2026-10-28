@@ -29,7 +29,15 @@ class DiscoveryMessage:
 
 SENSORS={
 	"forecast_today_kwh":SensorDefinition("Skorygowana prognoza PV na dzisiaj","kWh","energy","measurement"),
+	"weighted_forecast_today_kwh":SensorDefinition("Prognoza ważona PV przed korektą","kWh","energy","measurement"),
 	"correction_today_kwh":SensorDefinition("Zastosowana korekta prognozy PV","kWh","energy","measurement"),
+	"weight_fpv_percent":SensorDefinition("Waga FPV","%",None,"measurement"),
+	"weight_spv_percent":SensorDefinition("Waga SPV","%",None,"measurement"),
+	"weight_spv_l_percent":SensorDefinition("Waga SPV L","%",None,"measurement"),
+	"weight_spv_h_percent":SensorDefinition("Waga SPV H","%",None,"measurement"),
+	"weight_spv_div_l_percent":SensorDefinition("Waga SPV/L","%",None,"measurement"),
+	"weight_spv_l_div_h_percent":SensorDefinition("Waga SPV L/H","%",None,"measurement"),
+	"weight_spv_div_h_percent":SensorDefinition("Waga SPV/H","%",None,"measurement"),
 	"previous_production_kwh":SensorDefinition("Produkcja PV poprzedniego dnia","kWh","energy","measurement"),
 	"previous_error_kwh":SensorDefinition("Błąd prognozy PV poprzedniego dnia","kWh","energy","measurement"),
 	"mae_7d_kwh":SensorDefinition("MAE prognozy PV 7 dni","kWh","energy","measurement"),
@@ -38,7 +46,7 @@ SENSORS={
 	"model_status":SensorDefinition(
 		"Stan modelu prognozy PV",
 		device_class="enum",
-		options=["learning","calibrated","fallback_spv","missing_snapshot","source_error"]
+		options=["learning","calibrated_spv","calibrated_ensemble","fallback_spv","missing_snapshot","source_error"]
 	),
 	"last_update":SensorDefinition("Ostatnia aktualizacja prognozy PV",device_class="timestamp")
 }

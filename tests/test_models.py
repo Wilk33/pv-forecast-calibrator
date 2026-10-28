@@ -62,8 +62,10 @@ class ForecastSetTests(unittest.TestCase):
 			forecasts=forecasts,
 			published_forecast_kwh=19,
 			correction_kwh=-1,
-			mode="calibrated",
-			actual_kwh=18.5
+			mode="calibrated_ensemble",
+			actual_kwh=18.5,
+			weighted_forecast_kwh=18.75,
+			model_weights={"fpv":0.6,"spv":0.4}
 		)
 
 		loaded=DailyRecord.from_dict(record.to_dict())

@@ -44,7 +44,7 @@ class AppState:
 
 	def to_dict(self) -> dict[str,Any]:
 		return {
-			"version":2,
+			"version":3,
 			"records":[item.to_dict() for item in self.records],
 			"production_date":self.production_date,
 			"production_max_kwh":self.production_max_kwh

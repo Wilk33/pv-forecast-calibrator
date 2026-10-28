@@ -1,5 +1,14 @@
 # Historia zmian
 
+## 1.2.0
+
+- Zastąpiono pojedynczy kandydat SPV modelem zespołowym wykorzystującym wszystkie siedem prognoz.
+- Dodano dynamiczne wagi oparte na błędzie w kWh, zaniku historii i większej karze za przeszacowanie.
+- Dodano kroczącą walidację całego modelu ważonego względem najlepszego dopuszczonego wariantu SPV.
+- Dodano korektę resztkową prognozy ważonej z osobnymi limitami w dół i w górę.
+- Dodano encję prognozy ważonej i siedem encji wag modeli.
+- Rozszerzono zapis stanu oraz logi o prognozę ważoną i wagi modeli.
+
 ## 1.1.0
 
 - Dodano korektę prognozy w górę z osobnym konfigurowalnym limitem.

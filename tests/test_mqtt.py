@@ -12,12 +12,20 @@ class FakeClient:
 
 
 class MqttDiscoveryTests(unittest.TestCase):
-	def test_exposes_exactly_nine_output_entities(self):
+	def test_exposes_final_weighted_forecast_and_seven_model_weights(self):
 		self.assertEqual(
 			set(SENSORS),
 			{
 				"forecast_today_kwh",
+				"weighted_forecast_today_kwh",
 				"correction_today_kwh",
+				"weight_fpv_percent",
+				"weight_spv_percent",
+				"weight_spv_l_percent",
+				"weight_spv_h_percent",
+				"weight_spv_div_l_percent",
+				"weight_spv_l_div_h_percent",
+				"weight_spv_div_h_percent",
 				"previous_production_kwh",
 				"previous_error_kwh",
 				"mae_7d_kwh",
@@ -31,7 +39,7 @@ class MqttDiscoveryTests(unittest.TestCase):
 	def test_discovery_has_units_availability_and_stable_ids(self):
 		messages=discovery_messages("homeassistant","pv_forecast_calibrator","PV Forecast Calibrator")
 
-		self.assertEqual(len(messages),9)
+		self.assertEqual(len(messages),17)
 		by_key={message.key:message for message in messages}
 		forecast=by_key["forecast_today_kwh"].payload
 		self.assertEqual(forecast["unit_of_measurement"],"kWh")
@@ -46,17 +54,14 @@ class MqttDiscoveryTests(unittest.TestCase):
 
 		self.assertEqual(
 			status["options"],
-			["learning","calibrated","fallback_spv","missing_snapshot","source_error"]
+			["learning","calibrated_spv","calibrated_ensemble","fallback_spv","missing_snapshot","source_error"]
 		)
 
-	def test_source_forecasts_are_not_duplicated(self):
-		messages=discovery_messages("homeassistant","pv_forecast_calibrator","PV Forecast Calibrator")
-		serialized=" ".join(str(message.payload).lower() for message in messages)
-
-		self.assertNotIn("forecast.solar",serialized)
-		self.assertNotIn("raw_spv",serialized)
-		self.assertNotIn("spv_l",serialized)
-		self.assertNotIn("spv_h",serialized)
+	def test_source_forecast_values_are_not_duplicated(self):
+		self.assertNotIn("raw_fpv_kwh",SENSORS)
+		self.assertNotIn("raw_spv_kwh",SENSORS)
+		self.assertNotIn("raw_spv_l_kwh",SENSORS)
+		self.assertNotIn("raw_spv_h_kwh",SENSORS)
 
 	def test_publishes_discovery_and_state_as_retained_messages(self):
 		publisher=MqttPublisher({},"pv_forecast_calibrator","homeassistant","PV Forecast Calibrator")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 import math
 from typing import Any
 
@@ -97,6 +97,8 @@ class DailyRecord:
 	mode: str
 	actual_kwh: float | None=None
 	actual_verified: bool=False
+	weighted_forecast_kwh: float | None=None
+	model_weights: dict[str,float]=field(default_factory=dict)
 
 	def to_dict(self) -> dict[str,Any]:
 		return {
@@ -107,12 +109,18 @@ class DailyRecord:
 			"correction_kwh":self.correction_kwh,
 			"mode":self.mode,
 			"actual_kwh":self.actual_kwh,
-			"actual_verified":self.actual_verified
+			"actual_verified":self.actual_verified,
+			"weighted_forecast_kwh":self.weighted_forecast_kwh,
+			"model_weights":self.model_weights
 		}
 
 	@classmethod
 	def from_dict(cls,value: dict[str,Any]) -> "DailyRecord":
 		actual=value.get("actual_kwh")
+		weighted=value.get("weighted_forecast_kwh")
+		weights=value.get("model_weights",{})
+		if not isinstance(weights,dict):
+			raise ForecastDataError("model_weights must be an object")
 		return cls(
 			date=str(value["date"]),
 			captured_at=str(value["captured_at"]),
@@ -121,7 +129,9 @@ class DailyRecord:
 			correction_kwh=_finite_number(value["correction_kwh"],"correction_kwh"),
 			mode=str(value["mode"]),
 			actual_kwh=None if actual is None else _number(actual,"actual_kwh"),
-			actual_verified=bool(value.get("actual_verified",False))
+			actual_verified=bool(value.get("actual_verified",False)),
+			weighted_forecast_kwh=None if weighted is None else _number(weighted,"weighted_forecast_kwh"),
+			model_weights={str(key):_number(item,"model_weight") for key,item in weights.items()}
 		)
 
 	def with_actual(self,actual_kwh: float,verified: bool=True) -> "DailyRecord":
@@ -134,5 +144,7 @@ class DailyRecord:
 			correction_kwh=self.correction_kwh,
 			mode=self.mode,
 			actual_kwh=actual,
-			actual_verified=verified
+			actual_verified=verified,
+			weighted_forecast_kwh=self.weighted_forecast_kwh,
+			model_weights=self.model_weights
 		)

@@ -1,22 +1,25 @@
 # PV Forecast Calibrator
 
-**Status: wersja 1.1.0 jest gotowa do testów w Home Assistant OS. Aplikacja nie steruje falownikiem ani baterią.**
+**Status: wersja 1.2.0 jest gotowa do testów w Home Assistant OS. Aplikacja nie steruje falownikiem ani baterią.**
 
-PV Forecast Calibrator zapisuje przed rozpoczęciem produkcji pełną prognozę dobową Forecast.Solar i Solcast, porównuje ją z lokalną produkcją PV oraz publikuje jedną konserwatywnie skorygowaną prognozę przez MQTT Discovery.
+PV Forecast Calibrator zapisuje przed rozpoczęciem produkcji pełną prognozę dobową Forecast.Solar i Solcast, porównuje siedem modeli z lokalną produkcją PV, wylicza ich dynamiczne wagi i publikuje jedną konserwatywną prognozę przez MQTT Discovery.
 
 ## Najważniejsze zachowanie
 
 - czyta bezpośrednio Forecast.Solar, Solcast i dzienną produkcję PV;
 - pobiera z Solcast `estimate`, `estimate10` i `estimate90` bez encji pośrednich;
 - liczy lokalnie SPV/L, SPV L/H i SPV/H;
+- wyznacza osobną wagę każdego z siedmiu modeli na podstawie błędu w kWh;
+- zmniejsza wpływ modeli, które często przeszacowują produkcję;
 - zapisuje niezmienną próbkę domyślnie o 04:20;
 - nie używa prognozy śróddziennej jako prognozy całego dnia;
 - premiuje niedoszacowanie przez karę 2:1 za przeszacowanie;
-- ogranicza korektę SPV osobnymi limitami w dół i w górę;
+- ogranicza korektę wyniku osobnymi limitami w dół i w górę;
 - uruchamia korektę tylko po wygranym teście kroczącym;
-- wraca do surowego SPV, jeśli korekta pogarsza MAE albo koszt asymetryczny;
+- wybiera model ważony tylko wtedy, gdy pokonuje najlepszy dopuszczony wariant SPV według MAE i kosztu asymetrycznego;
+- wraca do sprawdzonego wariantu SPV, jeśli model ważony nie przechodzi bramki jakości;
 - udostępnia jednorazowy przełącznik wyczyszczenia historii przy uruchomieniu;
-- publikuje tylko wynik i metryki, bez powielania encji źródłowych.
+- publikuje wynik ważony, wynik końcowy, korektę, siedem wag i metryki, bez powielania encji źródłowych.
 
 ## Instalacja
 
@@ -34,7 +37,8 @@ Regresja na dostarczonych 20 dniach danych wykorzystuje pierwsze 5 dni jako hist
 
 - surowy SPV osiągnął MAE 2,228 kWh;
 - obecna zewnętrzna prognoza ważona osiągnęła MAE 6,703 kWh;
-- konserwatywny SPV z ograniczeniem korekty do 1 kWh w obu kierunkach osiągnął MAE 2,153 kWh i niższy koszt asymetryczny.
+- konserwatywny SPV z ograniczeniem korekty do 1 kWh w obu kierunkach osiągnął MAE 2,153 kWh i niższy koszt asymetryczny;
+- kandydat ważony z wersji 1.2.0 został na tym krótkim zakresie odrzucony przez bramkę jakości, więc aplikacja zachowała lepszy wynik skorygowanego SPV zamiast wymuszać gorszą średnią.
 
 Ten krótki zakres nie jest dowodem skuteczności w całym roku. Dlatego aplikacja utrzymuje SPV jako obowiązkowy punkt odniesienia i automatycznie wyłącza lokalną korektę, gdy test kroczący nie potwierdza poprawy.
 

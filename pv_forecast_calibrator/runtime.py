@@ -73,7 +73,7 @@ class ForecastRuntime:
 			forecast_solar=await self.ha.get_state(self.config.forecast_solar_entity)
 			solcast=await self.ha.get_state(self.config.solcast_entity)
 			forecasts=ForecastSet.from_states(forecast_solar.get("state"),solcast)
-			decision=decide_forecast(self.state.records,forecasts.spv,self.config.calibration)
+			decision=decide_forecast(self.state.records,forecasts,self.config.calibration)
 			LOGGER.info(
 				"Poranna próbka %s: FPV=%s kWh, SPV=%.4f kWh, SPV_L=%.4f kWh, SPV_H=%.4f kWh, SPV/L=%.4f kWh, SPV_L/H=%.4f kWh, SPV/H=%.4f kWh",
 				now.date().isoformat(),
@@ -92,7 +92,9 @@ class ForecastRuntime:
 				forecasts=forecasts,
 				published_forecast_kwh=decision.forecast_kwh,
 				correction_kwh=decision.correction_kwh,
-				mode=decision.mode
+				mode=decision.mode,
+				weighted_forecast_kwh=decision.weighted_forecast_kwh,
+				model_weights=decision.model_weights
 			)
 			added=self.state.add_record(record,self.config.history_limit_days)
 			self.model_status=decision.mode
@@ -217,19 +219,24 @@ class ForecastRuntime:
 
 	def _log_decision(self,decision) -> None:
 		LOGGER.info(
-			"Decyzja modelu: %s, historia=%d dni, walidacja=%d/%d, kandydat_korekty=%+.4f kWh, zastosowana_korekta=%+.4f kWh, wynik=%.4f kWh, powód=%s",
+			"Decyzja modelu: %s, historia=%d dni, walidacja=%d/%d, prognoza_ważona=%.4f kWh, kandydat_korekty=%+.4f kWh, zastosowana_korekta=%+.4f kWh, wynik=%.4f kWh, powód=%s",
 			decision.mode,
 			decision.completed_days,
 			decision.validation_samples,
 			decision.required_validation_samples,
+			decision.weighted_forecast_kwh,
 			decision.candidate_correction_kwh,
 			decision.correction_kwh,
 			decision.forecast_kwh,
 			decision.reason
 		)
+		LOGGER.info(
+			"Wagi modeli: %s",
+			", ".join(f"{key}={value*100:.2f}%" for key,value in decision.model_weights.items())
+		)
 		if decision.raw_metrics is not None and decision.corrected_metrics is not None:
 			LOGGER.info(
-				"Bramka jakości: próbki=%d, SPV_MAE=%.4f kWh, korekta_MAE=%.4f kWh, SPV_koszt=%.4f, korekta_koszt=%.4f",
+				"Bramka jakości: próbki=%d, wariant_bazowy_MAE=%.4f kWh, kandydat_MAE=%.4f kWh, wariant_bazowy_koszt=%.4f, kandydat_koszt=%.4f",
 				decision.raw_metrics.samples,
 				decision.raw_metrics.mae,
 				decision.corrected_metrics.mae,
@@ -248,7 +255,15 @@ class ForecastRuntime:
 		previous=completed[-1] if completed else None
 		return {
 			"forecast_today_kwh":None if current is None else round(current.published_forecast_kwh,4),
+			"weighted_forecast_today_kwh":None if current is None or current.weighted_forecast_kwh is None else round(current.weighted_forecast_kwh,4),
 			"correction_today_kwh":None if current is None else round(current.correction_kwh,4),
+			"weight_fpv_percent":_weight_percent(current,"fpv"),
+			"weight_spv_percent":_weight_percent(current,"spv"),
+			"weight_spv_l_percent":_weight_percent(current,"spv_l"),
+			"weight_spv_h_percent":_weight_percent(current,"spv_h"),
+			"weight_spv_div_l_percent":_weight_percent(current,"spv_div_l"),
+			"weight_spv_l_div_h_percent":_weight_percent(current,"spv_l_div_h"),
+			"weight_spv_div_h_percent":_weight_percent(current,"spv_div_h"),
 			"previous_production_kwh":None if previous is None else round(previous.actual_kwh,4),
 			"previous_error_kwh":None if previous is None else round(previous.published_forecast_kwh-previous.actual_kwh,4),
 			"mae_7d_kwh":_rounded(completed_mae(self.state.records,7)),
@@ -261,3 +276,9 @@ class ForecastRuntime:
 
 def _rounded(value: float | None) -> float | None:
 	return None if value is None else round(value,4)
+
+
+def _weight_percent(record: DailyRecord | None,key: str) -> float | None:
+	if record is None or key not in record.model_weights:
+		return None
+	return round(record.model_weights[key]*100,6)

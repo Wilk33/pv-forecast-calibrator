@@ -58,6 +58,8 @@ class ForecastRuntimeTests(unittest.IsolatedAsyncioTestCase):
 		self.assertEqual(state.records[0].date,"2026-10-08")
 		self.assertEqual(state.records[0].published_forecast_kwh,16.1263)
 		self.assertEqual(state.records[0].mode,"learning")
+		self.assertIsNotNone(state.records[0].weighted_forecast_kwh)
+		self.assertAlmostEqual(sum(state.records[0].model_weights.values()),1)
 		self.assertEqual(self.ha.state_calls.count(self.config.solcast_entity),1)
 
 	async def test_does_not_capture_intraday_forecast_after_deadline(self):
@@ -167,6 +169,12 @@ class ForecastRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
 		self.assertEqual(payload["forecast_today_kwh"],16.1263)
 		self.assertEqual(payload["correction_today_kwh"],0)
+		self.assertIsNotNone(payload["weighted_forecast_today_kwh"])
+		self.assertAlmostEqual(
+			sum(payload[key] for key in payload if key.startswith("weight_") and key.endswith("_percent")),
+			100,
+			places=4
+		)
 		self.assertNotIn("spv",payload)
 		self.assertNotIn("fpv",payload)
 
