@@ -4,7 +4,7 @@
 
 Aplikacja zapisuje prognozę dobową przed rozpoczęciem produkcji, a po zakończeniu dnia porównuje ją z rzeczywistą produkcją. Uczy się wyłącznie na dniach wcześniejszych. Nie używa odświeżonej prognozy śróddziennej jako prognozy całego dnia.
 
-Prognozą bazową jest `estimate` z encji Solcast. Aplikacja zapisuje również Forecast.Solar, `estimate10`, `estimate90` i trzy średnie modeli. Aplikacja publikuje SPV z lokalną korektą w dół tylko wtedy, gdy test kroczący potwierdza poprawę zarówno kosztu asymetrycznego, jak i MAE.
+Prognozą bazową jest `estimate` z encji Solcast. Aplikacja zapisuje również Forecast.Solar, `estimate10`, `estimate90` i trzy średnie modeli. Aplikacja publikuje SPV z lokalną korektą w dół albo w górę tylko wtedy, gdy test kroczący potwierdza poprawę zarówno kosztu asymetrycznego, jak i MAE.
 
 ## Konfiguracja encji
 
@@ -28,13 +28,15 @@ Jeżeli aplikacja zostanie uruchomiona po godzinie granicznej i nie ma zapisanej
 Domyślne parametry zostały ustalone na podstawie dostarczonej lokalnej historii:
 
 - przeszacowanie jest karane 2 razy mocniej od niedoszacowania;
-- korekta może tylko obniżyć SPV;
-- maksymalne obniżenie wynosi 1 kWh;
+- korekta może obniżyć albo podwyższyć SPV;
+- maksymalne obniżenie i podwyższenie mają osobne limity, domyślnie po 1 kWh;
 - nowsze błędy otrzymują większą wagę przez współczynnik zaniku 0,93;
 - pierwsze 5 dni tworzy historię treningową;
 - wymagane są co najmniej 3 późniejsze próbki testu kroczącego.
 
 Zmiana parametrów w ustawieniach nie usuwa historii. Jeśli nowa korekta nie przejdzie bramki jakości, wynik wraca do surowego SPV i stan zmienia się na `fallback_spv`.
+
+Wynik dzienny jest liczony jako poranna prognoza Solcast SPV plus korekta wyznaczona z wcześniejszych błędów. Ujemna korekta obniża prognozę, a dodatnia ją podwyższa. Parametr `max_downward_correction_kwh` ogranicza obniżenie, a `max_upward_correction_kwh` ogranicza podwyższenie.
 
 ## Encje
 
@@ -62,6 +64,8 @@ Dodatni błąd oznacza przeszacowanie, a ujemny niedoszacowanie.
 ## Trwałość
 
 Historia znajduje się w `/data/state.json` i jest objęta kopiami zapasowymi aplikacji Home Assistant. Zapis jest atomowy. Wartości `unknown`, `unavailable`, ujemne i niefinitywne są pomijane.
+
+Opcja `reset_history_on_start` jest jednorazowym resetem algorytmu. Po ustawieniu jej na `on` i ponownym uruchomieniu aplikacja usuwa cały plik stanu, w tym historię dni, bieżące maksimum produkcji i stan uczenia. Następnie przez API Supervisora zapisuje tę opcję z powrotem jako `off`. Po resecie model zaczyna od stanu `learning`.
 
 Po aktualizacji z wersji 1.0.0 aplikacja ponownie odczytuje historyczną produkcję od godziny porannej próbki do północy. Rekord jest używany do uczenia dopiero po takim potwierdzeniu. Zapobiega to przejęciu końcowej wartości poprzedniego dnia, gdy dzienny licznik produkcji zeruje się kilka minut po północy.
 

@@ -14,6 +14,7 @@ from .config import AppConfig
 from .ha import HomeAssistantClient
 from .mqtt import MqttPublisher
 from .runtime import ForecastRuntime
+from .startup import reset_history_if_requested
 from .storage import JsonStateStore
 from .supervisor import SupervisorClient
 
@@ -39,7 +40,7 @@ async def run():
 	)
 	LOGGER.info("Uruchomienie PV Forecast Calibrator %s",__version__)
 	LOGGER.info(
-		"Konfiguracja: Forecast.Solar=%s, Solcast=%s, produkcja=%s, strefa=%s, próbka=%s-%s, zamknięcie=%s, kara_przeszacowania=%.3f, maks_korekta_w_dół=%.3f kWh, trening=%d, walidacja=%d, okno=%d",
+		"Konfiguracja: Forecast.Solar=%s, Solcast=%s, produkcja=%s, strefa=%s, próbka=%s-%s, zamknięcie=%s, kara_przeszacowania=%.3f, maks_korekta_w_dół=%.3f kWh, maks_korekta_w_górę=%.3f kWh, reset_historii=%s, trening=%d, walidacja=%d, okno=%d",
 		config.forecast_solar_entity,
 		config.solcast_entity,
 		config.production_entity,
@@ -49,6 +50,8 @@ async def run():
 		config.settlement_time.isoformat(timespec="minutes"),
 		config.calibration.over_penalty,
 		config.calibration.max_downward_correction_kwh,
+		config.calibration.max_upward_correction_kwh,
+		config.reset_history_on_start,
 		config.calibration.minimum_training_days,
 		config.calibration.minimum_validation_days,
 		config.calibration.validation_window_days
@@ -60,6 +63,8 @@ async def run():
 	async with aiohttp.ClientSession(timeout=timeout) as session:
 		ha=HomeAssistantClient(session,token)
 		supervisor=SupervisorClient(session,token)
+		store=JsonStateStore(STATE_PATH)
+		await reset_history_if_requested(options,store,supervisor)
 		service=await supervisor.mqtt_service()
 		LOGGER.info(
 			"Konfiguracja MQTT odebrana: host=%s, port=%s, TLS=%s, temat=%s, Discovery=%s",
@@ -70,7 +75,7 @@ async def run():
 			config.mqtt_discovery_prefix
 		)
 		publisher=MqttPublisher(service,config.mqtt_base_topic,config.mqtt_discovery_prefix,config.device_name)
-		runtime=ForecastRuntime(config,JsonStateStore(STATE_PATH),ha)
+		runtime=ForecastRuntime(config,store,ha)
 		publisher.connect()
 		try:
 			publisher.publish_discovery()

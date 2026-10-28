@@ -1,5 +1,13 @@
 # Historia zmian
 
+## 1.1.0
+
+- Dodano korektę prognozy w górę z osobnym konfigurowalnym limitem.
+- Zachowano osobny limit korekty w dół oraz bramkę jakości MAE i kosztu asymetrycznego.
+- Dodano jednorazową opcję wyczyszczenia całej historii i stanu algorytmu przy uruchomieniu.
+- Po wykonaniu resetu aplikacja automatycznie zapisuje opcję resetu jako wyłączoną przez API Supervisora.
+- Rozszerzono log uruchomienia o oba limity korekty i stan opcji resetu.
+
 ## 1.0.1
 
 - Naprawiono przejmowanie końcowej produkcji poprzedniego dnia przed opóźnionym resetem licznika dziennego.

@@ -1,6 +1,6 @@
 # PV Forecast Calibrator
 
-**Status: wersja 1.0.1 jest gotowa do testów w Home Assistant OS. Aplikacja nie steruje falownikiem ani baterią.**
+**Status: wersja 1.1.0 jest gotowa do testów w Home Assistant OS. Aplikacja nie steruje falownikiem ani baterią.**
 
 PV Forecast Calibrator zapisuje przed rozpoczęciem produkcji pełną prognozę dobową Forecast.Solar i Solcast, porównuje ją z lokalną produkcją PV oraz publikuje jedną konserwatywnie skorygowaną prognozę przez MQTT Discovery.
 
@@ -12,9 +12,10 @@ PV Forecast Calibrator zapisuje przed rozpoczęciem produkcji pełną prognozę 
 - zapisuje niezmienną próbkę domyślnie o 04:20;
 - nie używa prognozy śróddziennej jako prognozy całego dnia;
 - premiuje niedoszacowanie przez karę 2:1 za przeszacowanie;
-- ogranicza korektę SPV do 1 kWh w dół;
+- ogranicza korektę SPV osobnymi limitami w dół i w górę;
 - uruchamia korektę tylko po wygranym teście kroczącym;
 - wraca do surowego SPV, jeśli korekta pogarsza MAE albo koszt asymetryczny;
+- udostępnia jednorazowy przełącznik wyczyszczenia historii przy uruchomieniu;
 - publikuje tylko wynik i metryki, bez powielania encji źródłowych.
 
 ## Instalacja
@@ -33,7 +34,7 @@ Regresja na dostarczonych 20 dniach danych wykorzystuje pierwsze 5 dni jako hist
 
 - surowy SPV osiągnął MAE 2,228 kWh;
 - obecna zewnętrzna prognoza ważona osiągnęła MAE 6,703 kWh;
-- konserwatywny SPV z ograniczeniem korekty do 1 kWh osiągnął MAE 2,153 kWh i niższy koszt asymetryczny.
+- konserwatywny SPV z ograniczeniem korekty do 1 kWh w obu kierunkach osiągnął MAE 2,153 kWh i niższy koszt asymetryczny.
 
 Ten krótki zakres nie jest dowodem skuteczności w całym roku. Dlatego aplikacja utrzymuje SPV jako obowiązkowy punkt odniesienia i automatycznie wyłącza lokalną korektę, gdy test kroczący nie potwierdza poprawy.
 
@@ -49,5 +50,6 @@ python -m compileall -q pv_forecast_calibrator pv-forecast-calibrator/rootfs/usr
 
 - [Home Assistant - konfiguracja aplikacji](https://developers.home-assistant.io/docs/apps/configuration/)
 - [Home Assistant - komunikacja aplikacji z Core, Supervisorem i usługami](https://developers.home-assistant.io/docs/apps/communication/)
+- [Home Assistant Supervisor API - endpointy aplikacji](https://developers.home-assistant.io/docs/api/supervisor/endpoints/)
 - [Home Assistant REST API](https://developers.home-assistant.io/docs/api/rest/)
 - [Home Assistant MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/)

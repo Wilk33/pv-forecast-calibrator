@@ -83,6 +83,13 @@ class JsonStateStore:
 		except (OSError,ValueError,KeyError,TypeError) as error:
 			raise StateFileError(f"Cannot load state file: {error}") from error
 
+	def reset(self):
+		try:
+			self.path.unlink(missing_ok=True)
+		except OSError as error:
+			raise StateFileError(f"Cannot reset state file: {error}") from error
+		LOGGER.warning("Usunięto historię i stan algorytmu z %s",self.path)
+
 	def save(self,state: AppState):
 		self.path.parent.mkdir(parents=True,exist_ok=True)
 		descriptor,temp_name=tempfile.mkstemp(prefix=f".{self.path.name}.",suffix=".tmp",dir=self.path.parent)

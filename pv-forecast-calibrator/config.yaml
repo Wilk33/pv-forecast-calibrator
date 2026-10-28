@@ -1,6 +1,6 @@
 name: PV Forecast Calibrator
 description: Lokalnie kalibrowana prognoza dziennej produkcji PV
-version: "1.0.1"
+version: "1.1.0"
 slug: pv-forecast-calibrator
 url: "https://github.com/Wilk33/pv-forecast-calibrator"
 stage: experimental
@@ -22,6 +22,8 @@ options:
   settlement_time: "23:00"
   overprediction_penalty: 2.0
   max_downward_correction_kwh: 1.0
+  max_upward_correction_kwh: 1.0
+  reset_history_on_start: false
   decay: 0.93
   minimum_training_days: 5
   minimum_validation_days: 3
@@ -42,6 +44,8 @@ schema:
   settlement_time: str
   overprediction_penalty: float(1,10)
   max_downward_correction_kwh: float(0,20)
+  max_upward_correction_kwh: float(0,20)
+  reset_history_on_start: bool
   decay: float(0.01,1)
   minimum_training_days: int(1,365)
   minimum_validation_days: int(1,365)

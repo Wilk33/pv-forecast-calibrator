@@ -47,6 +47,13 @@ def _int(options: dict[str,Any],key: str,default: int) -> int:
 		raise ConfigurationError(f"Option {key} must be an integer") from error
 
 
+def _bool(options: dict[str,Any],key: str,default: bool) -> bool:
+	value=options.get(key,default)
+	if not isinstance(value,bool):
+		raise ConfigurationError(f"Option {key} must be a boolean")
+	return value
+
+
 @dataclass(frozen=True)
 class AppConfig:
 	forecast_solar_entity: str
@@ -57,6 +64,7 @@ class AppConfig:
 	snapshot_deadline: time
 	settlement_time: time
 	calibration: CalibrationConfig
+	reset_history_on_start: bool
 	history_limit_days: int
 	poll_interval_seconds: int
 	mqtt_base_topic: str
@@ -78,7 +86,8 @@ class AppConfig:
 		if settlement_time <= snapshot_deadline:
 			raise ConfigurationError("settlement_time must be after snapshot_deadline")
 		over_penalty=_float(options,"overprediction_penalty",2.0)
-		max_correction=_float(options,"max_downward_correction_kwh",1.0)
+		max_downward_correction=_float(options,"max_downward_correction_kwh",1.0)
+		max_upward_correction=_float(options,"max_upward_correction_kwh",1.0)
 		decay=_float(options,"decay",0.93)
 		training=_int(options,"minimum_training_days",5)
 		validation=_int(options,"minimum_validation_days",3)
@@ -87,8 +96,10 @@ class AppConfig:
 		poll_interval=_int(options,"poll_interval_seconds",60)
 		if over_penalty < 1:
 			raise ConfigurationError("overprediction_penalty must be at least 1")
-		if max_correction < 0:
+		if max_downward_correction < 0:
 			raise ConfigurationError("max_downward_correction_kwh must not be negative")
+		if max_upward_correction < 0:
+			raise ConfigurationError("max_upward_correction_kwh must not be negative")
 		if not 0 < decay <= 1:
 			raise ConfigurationError("decay must be greater than 0 and at most 1")
 		if training < 1:
@@ -109,7 +120,16 @@ class AppConfig:
 			snapshot_time=snapshot_time,
 			snapshot_deadline=snapshot_deadline,
 			settlement_time=settlement_time,
-			calibration=CalibrationConfig(over_penalty,max_correction,decay,training,validation,validation_window),
+			calibration=CalibrationConfig(
+				over_penalty=over_penalty,
+				max_downward_correction_kwh=max_downward_correction,
+				max_upward_correction_kwh=max_upward_correction,
+				decay=decay,
+				minimum_training_days=training,
+				minimum_validation_days=validation,
+				validation_window_days=validation_window
+			),
+			reset_history_on_start=_bool(options,"reset_history_on_start",False),
 			history_limit_days=history_limit,
 			poll_interval_seconds=poll_interval,
 			mqtt_base_topic=str(options.get("mqtt_base_topic","pv_forecast_calibrator")).strip(" /"),

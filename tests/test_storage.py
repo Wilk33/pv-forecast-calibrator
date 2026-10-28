@@ -12,6 +12,17 @@ def make_record(date):
 
 
 class JsonStateStoreTests(unittest.TestCase):
+	def test_reset_removes_persisted_history(self):
+		with tempfile.TemporaryDirectory() as directory:
+			path=Path(directory)/"state.json"
+			store=JsonStateStore(path)
+			store.save(AppState(production_date="2026-10-28",production_max_kwh=12.5))
+
+			store.reset()
+
+			self.assertFalse(path.exists())
+			self.assertEqual(store.load(),AppState())
+
 	def test_missing_file_loads_empty_state(self):
 		with tempfile.TemporaryDirectory() as directory:
 			store=JsonStateStore(Path(directory)/"state.json")

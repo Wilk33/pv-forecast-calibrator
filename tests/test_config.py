@@ -21,6 +21,8 @@ class AppConfigTests(unittest.TestCase):
 		self.assertEqual(config.settlement_time.isoformat(timespec="minutes"),"23:00")
 		self.assertEqual(config.calibration.over_penalty,2)
 		self.assertEqual(config.calibration.max_downward_correction_kwh,1)
+		self.assertEqual(config.calibration.max_upward_correction_kwh,1)
+		self.assertFalse(config.reset_history_on_start)
 
 	def test_rejects_non_sensor_entity(self):
 		options=valid_options()
@@ -42,6 +44,8 @@ class AppConfigTests(unittest.TestCase):
 			("overprediction_penalty",0.9),
 			("overprediction_penalty","nan"),
 			("max_downward_correction_kwh",-1),
+			("max_upward_correction_kwh",-1),
+			("reset_history_on_start","true"),
 			("decay",1.1),
 			("minimum_training_days",0),
 			("minimum_validation_days",0),

@@ -8,6 +8,8 @@ configuration:
   settlement_time: {name: Zamknięcie dnia, description: Godzina zapisania końcowej produkcji.}
   overprediction_penalty: {name: Kara za przeszacowanie, description: Mnożnik błędu, gdy prognoza jest za wysoka.}
   max_downward_correction_kwh: {name: Maksymalna korekta w dół, description: Największe dopuszczalne obniżenie SPV w kWh.}
+  max_upward_correction_kwh: {name: Maksymalna korekta w górę, description: Największe dopuszczalne podwyższenie SPV w kWh.}
+  reset_history_on_start: {name: Wyczyść historię przy uruchomieniu, description: Jednorazowo usuwa historię i stan algorytmu, a następnie automatycznie wraca na off.}
   decay: {name: Zanik wag historii, description: Względna waga kolejnego starszego dnia.}
   minimum_training_days: {name: Minimalne dni treningowe, description: Dni wymagane przed pierwszym testem kroczącym.}
   minimum_validation_days: {name: Minimalne dni walidacyjne, description: Liczba testów wymagana do włączenia korekty.}

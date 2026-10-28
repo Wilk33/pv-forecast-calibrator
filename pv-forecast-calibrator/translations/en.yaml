@@ -8,6 +8,8 @@ configuration:
   settlement_time: {name: Settlement time, description: Time used to finalize the daily production.}
   overprediction_penalty: {name: Overprediction penalty, description: Error multiplier when the forecast is too high.}
   max_downward_correction_kwh: {name: Maximum downward correction, description: Largest allowed SPV reduction in kWh.}
+  max_upward_correction_kwh: {name: Maximum upward correction, description: Largest allowed SPV increase in kWh.}
+  reset_history_on_start: {name: Clear history on startup, description: Clears the model history and state once, then automatically returns to off.}
   decay: {name: History weight decay, description: Relative weight of each next older day.}
   minimum_training_days: {name: Minimum training days, description: Days required before the first walk-forward test.}
   minimum_validation_days: {name: Minimum validation days, description: Tests required before correction can activate.}

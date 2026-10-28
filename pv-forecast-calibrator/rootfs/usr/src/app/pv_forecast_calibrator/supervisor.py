@@ -10,6 +10,12 @@ def normalize_supervisor_data(payload: dict[str,Any]) -> dict[str,Any]:
 	return value
 
 
+def build_options_payload(options: dict[str,Any],**changes: Any) -> dict[str,dict[str,Any]]:
+	updated=dict(options)
+	updated.update(changes)
+	return {"options":updated}
+
+
 class SupervisorClient:
 	def __init__(self,session,token: str,base_url: str="http://supervisor"):
 		self.session=session
@@ -20,3 +26,12 @@ class SupervisorClient:
 		async with self.session.get(f"{self.base_url}/services/mqtt",headers=self.headers) as response:
 			response.raise_for_status()
 			return normalize_supervisor_data(await response.json())
+
+	async def update_options(self,options: dict[str,Any]):
+		payload=build_options_payload(options)
+		async with self.session.post(
+			f"{self.base_url}/addons/self/options",
+			headers=self.headers,
+			json=payload
+		) as response:
+			response.raise_for_status()

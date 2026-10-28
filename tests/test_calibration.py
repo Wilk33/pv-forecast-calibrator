@@ -45,6 +45,7 @@ class CalibrationTests(unittest.TestCase):
 		self.config=CalibrationConfig(
 			over_penalty=2,
 			max_downward_correction_kwh=1,
+			max_upward_correction_kwh=1,
 			decay=0.93,
 			minimum_training_days=5,
 			minimum_validation_days=3,
@@ -116,6 +117,19 @@ class CalibrationTests(unittest.TestCase):
 		self.assertEqual(decision.mode,"fallback_spv")
 		self.assertEqual(decision.correction_kwh,0)
 		self.assertEqual(decision.forecast_kwh,22)
+
+	def test_consistent_underprediction_can_activate_upward_correction(self):
+		history=[]
+		for day in range(1,13):
+			item={"date":f"2026-01-{day:02d}","actual":24,"fpv":18,"spv":20,"spv_l":10,"spv_h":30}
+			history.append(record(item))
+
+		decision=decide_forecast(history,30,self.config)
+
+		self.assertEqual(decision.mode,"calibrated")
+		self.assertAlmostEqual(decision.candidate_correction_kwh,1)
+		self.assertAlmostEqual(decision.correction_kwh,1)
+		self.assertAlmostEqual(decision.forecast_kwh,31)
 
 
 if __name__ == "__main__":

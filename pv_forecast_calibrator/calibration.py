@@ -10,6 +10,7 @@ from .models import DailyRecord
 class CalibrationConfig:
 	over_penalty: float=2.0
 	max_downward_correction_kwh: float=1.0
+	max_upward_correction_kwh: float=1.0
 	decay: float=0.93
 	minimum_training_days: int=5
 	minimum_validation_days: int=3
@@ -78,7 +79,7 @@ def _candidate_correction(history: list[DailyRecord],config: CalibrationConfig) 
 	weights=[config.decay**age for age in ages]
 	quantile=1.0/(1.0+config.over_penalty)
 	value=_weighted_quantile(residuals,quantile,weights)
-	return max(-config.max_downward_correction_kwh,min(0.0,value))
+	return max(-config.max_downward_correction_kwh,min(config.max_upward_correction_kwh,value))
 
 
 def walk_forward(history: list[DailyRecord],config: CalibrationConfig) -> list[WalkForwardSample]:

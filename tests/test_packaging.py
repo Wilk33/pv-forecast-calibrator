@@ -26,7 +26,7 @@ class PackagingTests(unittest.TestCase):
 	def test_config_has_version_api_mqtt_and_no_ingress(self):
 		config=(APP/"config.yaml").read_text(encoding="utf-8")
 
-		self.assertIn('version: "1.0.1"',config)
+		self.assertIn('version: "1.1.0"',config)
 		self.assertIn("slug: pv-forecast-calibrator",config)
 		self.assertIn("homeassistant_api: true",config)
 		self.assertIn("hassio_api: true",config)
@@ -43,6 +43,8 @@ class PackagingTests(unittest.TestCase):
 			'settlement_time: "23:00"',
 			'overprediction_penalty: 2.0',
 			'max_downward_correction_kwh: 1.0',
+			'max_upward_correction_kwh: 1.0',
+			'reset_history_on_start: false',
 			'decay: 0.93'
 		):
 			with self.subTest(expected=expected):
@@ -52,8 +54,8 @@ class PackagingTests(unittest.TestCase):
 		config=(APP/"config.yaml").read_text(encoding="utf-8")
 		package=(ROOT/"pv_forecast_calibrator"/"__init__.py").read_text(encoding="utf-8")
 
-		self.assertIn('version: "1.0.1"',config)
-		self.assertIn('__version__="1.0.1"',package)
+		self.assertIn('version: "1.1.0"',config)
+		self.assertIn('__version__="1.1.0"',package)
 
 	def test_container_runtime_copy_matches_tested_source(self):
 		source=ROOT/"pv_forecast_calibrator"
